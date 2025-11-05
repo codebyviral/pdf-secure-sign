@@ -1,100 +1,177 @@
 // src/utils/signPdf.js
 import fs from "fs";
-import path from "path";
-import {
-    fileURLToPath
-} from "url";
 import forge from "node-forge";
-import {
-    PDFDocument,
-    StandardFonts,
-    rgb
-} from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const certDir = path.resolve(__dirname, "../certs");
+/**
+ * Dynamically generate a self-signed certificate with user-provided details.
+ */
+function generateSelfSignedCertificate({
+  commonName = "Default User",
+  organizationName = "PDF Secure Sign",
+  organizationalUnit = "ICT Department",
+  countryName = "IN",
+  stateName = "Gujarat",
+  localityName = "Gandhinagar",
+  validityDays = 365,
+  notBefore, // optional start date
+  notAfter, // optional end date
+}) {
+  const keys = forge.pki.rsa.generateKeyPair(2048);
+  const cert = forge.pki.createCertificate();
+  cert.publicKey = keys.publicKey;
+  cert.serialNumber = new Date().getTime().toString();
 
-export async function digitallySignPdf(pdfPath) {
-    // Read certs
-    const privateKeyPem = fs.readFileSync(path.join(certDir, "private.key"), "utf8");
-    const certificatePem = fs.readFileSync(path.join(certDir, "certificate.crt"), "utf8");
+  // Validity period
+  const startDate = notBefore ? new Date(notBefore) : new Date();
+  const endDate = notAfter
+    ? new Date(notAfter)
+    : new Date(startDate.getTime() + validityDays * 24 * 60 * 60 * 1000);
 
-    const privateKey = forge.pki.privateKeyFromPem(privateKeyPem);
-    const certificate = forge.pki.certificateFromPem(certificatePem);
+  cert.validity.notBefore = startDate;
+  cert.validity.notAfter = endDate;
 
-    // Load PDF
-    const pdfBytes = fs.readFileSync(pdfPath);
-    const pdfDoc = await PDFDocument.load(pdfBytes);
+  // Certificate subject details
+  const attrs = [
+    { name: "commonName", value: commonName },
+    { name: "organizationName", value: organizationName },
+    { shortName: "OU", value: organizationalUnit },
+    { name: "countryName", value: countryName },
+    { shortName: "ST", value: stateName },
+    { name: "localityName", value: localityName },
+  ];
 
-    // Add visible signature note
-    const pages = pdfDoc.getPages();
-    const firstPage = pages[0];
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    firstPage.drawText("Digitally Signed by pdf-secure-sign", {
-        x: 50,
-        y: 50,
-        size: 12,
-        font,
-        color: rgb(0, 0, 0),
-    });
+  cert.setSubject(attrs);
+  cert.setIssuer(attrs); // self-signed
 
-    // === Generate PKCS#7 detached signature ===
-    const md = forge.md.sha256.create();
-    md.update(pdfBytes.toString("binary"));
+  // Add certificate extensions
+  cert.setExtensions([
+    { name: "basicConstraints", cA: true },
+    {
+      name: "keyUsage",
+      digitalSignature: true,
+      nonRepudiation: true,
+      keyCertSign: true,
+      dataEncipherment: true,
+    },
+    {
+      name: "extKeyUsage",
+      clientAuth: true,
+      emailProtection: true,
+      codeSigning: true,
+    },
+    {
+      name: "subjectAltName",
+      altNames: [
+        { type: 2, value: "localhost" },
+        { type: 7, ip: "127.0.0.1" },
+      ],
+    },
+  ]);
 
-    const p7 = forge.pkcs7.createSignedData();
-    p7.content = new forge.util.ByteBuffer(pdfBytes.toString("binary"));
-    p7.addCertificate(certificate);
-    p7.addSigner({
-        key: privateKey,
-        certificate: certificate,
-        digestAlgorithm: forge.pki.oids.sha256,
-        authenticatedAttributes: [{
-                type: forge.pki.oids.contentType,
-                value: forge.pki.oids.data
-            },
-            {
-                type: forge.pki.oids.messageDigest,
-                value: md.digest().bytes()
-            },
-            {
-                type: forge.pki.oids.signingTime,
-                value: new Date()
-            },
-        ],
-    });
-    p7.sign({
-        detached: true
-    });
+  // Self-sign the certificate
+  cert.sign(keys.privateKey, forge.md.sha256.create());
 
-    // Convert to ArrayBuffer
-    const derBytes = forge.asn1.toDer(p7.toAsn1()).getBytes();
-    const signatureArray = new Uint8Array(derBytes.length);
-    for (let i = 0; i < derBytes.length; i++) {
-        signatureArray[i] = derBytes.charCodeAt(i);
+  // Convert to PEM format
+  const privateKeyPem = forge.pki.privateKeyToPem(keys.privateKey);
+  const certificatePem = forge.pki.certificateToPem(cert);
+
+  return { privateKeyPem, certificatePem, details: { startDate, endDate } };
+}
+
+/**
+ * Sign PDF using dynamically generated certificate.
+ */
+export async function digitallySignPdf(pdfPath, userDetails) {
+  // 1️⃣ Generate new self-signed cert + key
+  const { privateKeyPem, certificatePem, details } =
+    generateSelfSignedCertificate(userDetails);
+
+  const privateKey = forge.pki.privateKeyFromPem(privateKeyPem);
+  const certificate = forge.pki.certificateFromPem(certificatePem);
+
+  // 2️⃣ Load PDF
+  const pdfBytes = fs.readFileSync(pdfPath);
+  const pdfDoc = await PDFDocument.load(pdfBytes);
+
+  // Add visible text note on PDF
+  const pages = pdfDoc.getPages();
+  const firstPage = pages[0];
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  firstPage.drawText(`Digitally Signed by ${userDetails.commonName}`, {
+    x: 50,
+    y: 50,
+    size: 12,
+    font,
+    color: rgb(0, 0, 0),
+  });
+  firstPage.drawText(`Organization: ${userDetails.organizationName}`, {
+    x: 50,
+    y: 35,
+    size: 10,
+    font,
+    color: rgb(0, 0, 0),
+  });
+  firstPage.drawText(
+    `Valid: ${details.startDate.toDateString()} - ${details.endDate.toDateString()}`,
+    {
+      x: 50,
+      y: 20,
+      size: 9,
+      font,
+      color: rgb(0, 0, 0),
     }
+  );
 
-    // Attach signature as .p7s
-    await pdfDoc.attach(signatureArray, "signature.p7s", {
-        description: "Detached PKCS#7 digital signature",
-    });
+  // 3️⃣ Create PKCS#7 detached signature
+  const md = forge.md.sha256.create();
+  md.update(pdfBytes.toString("binary"));
 
-    // Metadata
-    pdfDoc.setTitle("Digitally Signed PDF");
-    pdfDoc.setSubject("Contains PKCS#7 digital signature");
-    pdfDoc.setProducer("Node.js Forge + pdf-lib");
-    pdfDoc.setCreator("PDF Secure Sign");
+  const p7 = forge.pkcs7.createSignedData();
+  p7.content = new forge.util.ByteBuffer(pdfBytes.toString("binary"));
+  p7.addCertificate(certificate);
+  p7.addSigner({
+    key: privateKey,
+    certificate,
+    digestAlgorithm: forge.pki.oids.sha256,
+    authenticatedAttributes: [
+      { type: forge.pki.oids.contentType, value: forge.pki.oids.data },
+      { type: forge.pki.oids.messageDigest, value: md.digest().bytes() },
+      { type: forge.pki.oids.signingTime, value: new Date() },
+    ],
+  });
+  p7.sign({ detached: true });
 
-    // Save
-    const outputDir = "signed";
-    fs.mkdirSync(outputDir, {
-        recursive: true
-    });
-    const outputPath = pdfPath.replace("uploads", "signed").replace(".pdf", "-signed.pdf");
-    const signedBytes = await pdfDoc.save();
-    fs.writeFileSync(outputPath, signedBytes);
+  // Convert signature to Uint8Array
+  const derBytes = forge.asn1.toDer(p7.toAsn1()).getBytes();
+  const signatureArray = new Uint8Array(derBytes.length);
+  for (let i = 0; i < derBytes.length; i++) {
+    signatureArray[i] = derBytes.charCodeAt(i);
+  }
 
-    console.log("✅ PDF digitally signed:", outputPath);
-    return outputPath;
+  // 4️⃣ Attach signature
+  await pdfDoc.attach(signatureArray, "signature.p7s", {
+    description: `Detached PKCS#7 signature for ${userDetails.commonName}`,
+  });
+
+  // 5️⃣ Add metadata
+  pdfDoc.setTitle("Digitally Signed PDF");
+  pdfDoc.setSubject("Contains dynamically generated PKCS#7 signature");
+  pdfDoc.setProducer("Node.js Forge + pdf-lib");
+  pdfDoc.setCreator("PDF Secure Sign Dynamic System");
+
+  // 6️⃣ Save output
+  const outputDir = "signed";
+  fs.mkdirSync(outputDir, { recursive: true });
+  const outputPath = pdfPath
+    .replace("uploads", "signed")
+    .replace(".pdf", "-signed.pdf");
+  const signedBytes = await pdfDoc.save();
+  fs.writeFileSync(outputPath, signedBytes);
+
+  console.log(
+    "✅ PDF signed using user-provided certificate details:",
+    outputPath
+  );
+  return outputPath;
 }
