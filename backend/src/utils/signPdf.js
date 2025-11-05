@@ -101,14 +101,14 @@ export async function digitallySignPdf(pdfPath, userDetails) {
   firstPage.drawText(`Digitally Signed by ${userDetails.commonName}`, {
     x: 50,
     y: 50,
-    size: 12,
+    size: 9,
     font,
     color: rgb(0, 0, 0),
   });
   firstPage.drawText(`Organization: ${userDetails.organizationName}`, {
     x: 50,
     y: 35,
-    size: 10,
+    size: 9,
     font,
     color: rgb(0, 0, 0),
   });
