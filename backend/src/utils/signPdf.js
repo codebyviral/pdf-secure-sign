@@ -31,7 +31,7 @@ export async function digitallySignPdf(pdfPath) {
     const pages = pdfDoc.getPages();
     const firstPage = pages[0];
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    firstPage.drawText("Digitally Signed (Demo)", {
+    firstPage.drawText("Digitally Signed by pdf-secure-sign", {
         x: 50,
         y: 50,
         size: 12,
@@ -39,7 +39,7 @@ export async function digitallySignPdf(pdfPath) {
         color: rgb(0, 0, 0),
     });
 
-    // === Generate PKCS#7 detached signature (fixed) ===
+    // === Generate PKCS#7 detached signature ===
     const md = forge.md.sha256.create();
     md.update(pdfBytes.toString("binary"));
 

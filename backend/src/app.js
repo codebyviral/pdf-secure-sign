@@ -40,7 +40,7 @@ app.post("/api/sign-pdf", upload.single("pdf"), async (req, res) => {
   }
 });
 
-// ✅ Correctly resolve the certs folder relative to this file
+//Resolve the certs folder relative to this file
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const certDir = path.join(__dirname, "certs");
