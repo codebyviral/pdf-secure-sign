@@ -1,35 +1,59 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from "react";
+import "./App.css"; // Import the CSS file
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [file, setFile] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleUpload = async () => {
+    if (!file) return alert("Please choose a PDF first");
+    setLoading(true);
+
+    const formData = new FormData();
+    formData.append("pdf", file);
+
+    const response = await fetch("http://localhost:8080/api/sign-pdf", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      alert("Signing failed!");
+      setLoading(false);
+      return;
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "digitally-signed.pdf";
+    link.click();
+    setLoading(false);
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
+    <div className="app-container">
       <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
+        <h2>📄 Digital PDF Signature</h2>
+        <p className="subtitle">Upload and digitally sign your PDF instantly</p>
+
+        <div className="upload-section">
+          <input
+            type="file"
+            accept="application/pdf"
+            onChange={(e) => setFile(e.target.files[0])}
+            className="file-input"
+          />
+          {file && <p className="file-name">Selected: {file.name}</p>}
+        </div>
+
+        <button onClick={handleUpload} disabled={loading} className="btn">
+          {loading ? "Signing..." : "Upload & Digitally Sign"}
         </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    </div>
+  );
 }
 
-export default App
+export default App;
