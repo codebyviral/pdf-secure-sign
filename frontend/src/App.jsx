@@ -2,6 +2,7 @@ import { useState } from "react";
 import "./App.css"; // Import the CSS file
 
 function App() {
+
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -11,7 +12,7 @@ function App() {
 
     const formData = new FormData();
     formData.append("pdf", file);
-
+    // Call our backend
     const response = await fetch("http://localhost:8080/api/sign-pdf", {
       method: "POST",
       body: formData,
