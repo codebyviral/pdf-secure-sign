@@ -83,14 +83,14 @@ function generateSelfSignedCertificate({
  * Sign PDF using dynamically generated certificate.
  */
 export async function digitallySignPdf(pdfPath, userDetails) {
-  // 1️⃣ Generate new self-signed cert + key
+  // Generate new self-signed cert + key
   const { privateKeyPem, certificatePem, details } =
     generateSelfSignedCertificate(userDetails);
 
   const privateKey = forge.pki.privateKeyFromPem(privateKeyPem);
   const certificate = forge.pki.certificateFromPem(certificatePem);
 
-  // 2️⃣ Load PDF
+  // Load PDF
   const pdfBytes = fs.readFileSync(pdfPath);
   const pdfDoc = await PDFDocument.load(pdfBytes);
 
@@ -123,7 +123,7 @@ export async function digitallySignPdf(pdfPath, userDetails) {
     }
   );
 
-  // 3️⃣ Create PKCS#7 detached signature
+  // Create PKCS#7 detached signature
   const md = forge.md.sha256.create();
   md.update(pdfBytes.toString("binary"));
 
@@ -149,18 +149,18 @@ export async function digitallySignPdf(pdfPath, userDetails) {
     signatureArray[i] = derBytes.charCodeAt(i);
   }
 
-  // 4️⃣ Attach signature
+  // Attach signature
   await pdfDoc.attach(signatureArray, "signature.p7s", {
     description: `Detached PKCS#7 signature for ${userDetails.commonName}`,
   });
 
-  // 5️⃣ Add metadata
+  // Add metadata
   pdfDoc.setTitle("Digitally Signed PDF");
   pdfDoc.setSubject("Contains dynamically generated PKCS#7 signature");
   pdfDoc.setProducer("Node.js Forge + pdf-lib");
   pdfDoc.setCreator("PDF Secure Sign Dynamic System");
 
-  // 6️⃣ Save output
+  // Save output
   const outputDir = "signed";
   fs.mkdirSync(outputDir, { recursive: true });
   const outputPath = pdfPath
@@ -170,7 +170,7 @@ export async function digitallySignPdf(pdfPath, userDetails) {
   fs.writeFileSync(outputPath, signedBytes);
 
   console.log(
-    "✅ PDF signed using user-provided certificate details:",
+    "PDF signed using user-provided certificate details:",
     outputPath
   );
   return outputPath;

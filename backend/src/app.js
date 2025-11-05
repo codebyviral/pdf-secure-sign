@@ -25,7 +25,7 @@ app.post("/api/sign-pdf", upload.single("pdf"), async (req, res) => {
   try {
     const inputPath = req.file.path;
 
-    // ✅ Match the exact field names from frontend
+    // Match the exact field names from frontend
     const userDetails = {
       commonName: req.body.commonName,
       organizationName: req.body.organizationName,
