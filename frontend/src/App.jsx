@@ -13,7 +13,7 @@ function App() {
     const formData = new FormData();
     formData.append("pdf", file);
     // Call our backend
-    const response = await fetch("http://localhost:8080/api/sign-pdf", {
+    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/sign-pdf`, {
       method: "POST",
       body: formData,
     });
