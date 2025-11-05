@@ -15,7 +15,6 @@ frontend/bower_components/
 frontend/coverage/
 frontend/.nyc_output/
 frontend/.grunt/
-frontend/build/
 frontend/jspm_packages/
 frontend/web_modules/
 frontend/*.tsbuildinfo
@@ -36,7 +35,6 @@ frontend/.parcel-cache
 frontend/.next
 frontend/out
 frontend/.nuxt
-frontend/dist
 frontend/.vuepress/dist
 frontend/.serverless/
 frontend/.fusebox/
