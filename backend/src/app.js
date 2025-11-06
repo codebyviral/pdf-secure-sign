@@ -58,12 +58,12 @@ app.post("/api/sign-pdf", upload.single("pdf"), async (req, res) => {
       notAfter: req.body.notAfter,
     };
 
-    console.log("✅ Received user details:", userDetails);
+    console.log("Received user details:", userDetails);
 
     const outputPath = await digitallySignPdf(inputPath, userDetails);
     res.download(outputPath, "digitally-signed.pdf");
   } catch (err) {
-    console.error("❌ Error signing PDF:", err);
+    console.error("Error signing PDF:", err);
     res.status(500).json({ error: "Failed to sign PDF" });
   }
 });
@@ -71,7 +71,7 @@ app.post("/api/sign-pdf", upload.single("pdf"), async (req, res) => {
 // === Health routes & other APIs (optional) ===
 app.get("/", (req, res) => {
   res.send(
-    "✅ PDF Secure Sign server is running! POST /api/sign-pdf with a PDF file to sign it dynamically."
+    "PDF Secure Sign server is running! POST /api/sign-pdf with a PDF file to sign it dynamically."
   );
 });
 
