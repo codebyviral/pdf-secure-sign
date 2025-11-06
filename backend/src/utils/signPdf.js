@@ -64,7 +64,7 @@ function generateSelfSignedCertificate({
       name: "subjectAltName",
       altNames: [
         { type: 2, value: "localhost" },
-        { type: 7, ip: "127.0.0.1" },9
+        { type: 7, ip: "127.0.0.1" },
       ],
     },
   ]);
