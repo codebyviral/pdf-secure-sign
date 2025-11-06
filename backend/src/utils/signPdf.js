@@ -14,8 +14,8 @@ function generateSelfSignedCertificate({
   stateName = "Gujarat",
   localityName = "Gandhinagar",
   validityDays = 365,
-  notBefore, // optional start date
-  notAfter, // optional end date
+  notBefore, // start date
+  notAfter, // end date
 }) {
   const keys = forge.pki.rsa.generateKeyPair(2048);
   const cert = forge.pki.createCertificate();
@@ -64,7 +64,7 @@ function generateSelfSignedCertificate({
       name: "subjectAltName",
       altNames: [
         { type: 2, value: "localhost" },
-        { type: 7, ip: "127.0.0.1" },
+        { type: 7, ip: "127.0.0.1" },9
       ],
     },
   ]);
@@ -131,7 +131,7 @@ export async function digitallySignPdf(pdfPath, userDetails) {
   p7.content = new forge.util.ByteBuffer(pdfBytes.toString("binary"));
   p7.addCertificate(certificate);
   p7.addSigner({
-    key: privateKey,
+    key: privateKey,  
     certificate,
     digestAlgorithm: forge.pki.oids.sha256,
     authenticatedAttributes: [
