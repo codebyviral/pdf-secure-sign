@@ -337,7 +337,7 @@ function App() {
                 <div className="bg-white rounded-2xl p-5 space-y-3">
                   <div className="flex items-center gap-3">
                     <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    <p className="text-sm text-gray-700">256-bit encryption</p>
+                    <p className="text-sm text-gray-700">Protected with 2048-bit RSA encryption</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
