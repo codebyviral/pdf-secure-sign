@@ -19,6 +19,24 @@ app.use(cookieParser());
 
 const upload = multer({ dest: "uploads/" });
 
+app.get("/api/health", (req, res) => {
+  try {
+    return res.status(200).json({
+      status: "OK",
+      message: "Server is healthy",
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+    });
+  } catch (error) {
+    console.error("Health check failed:", error);
+    return res.status(500).json({
+      status: "ERROR",
+      message: "Something went wrong with the health check",
+      error: error.message,
+    });
+  }
+});
+
 // === API: sign PDF ===
 // === API: sign PDF ===
 app.post("/api/sign-pdf", upload.single("pdf"), async (req, res) => {
